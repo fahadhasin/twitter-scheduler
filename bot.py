@@ -36,7 +36,7 @@ ALLOWED_USER_ID = int(os.environ["ALLOWED_USER_ID"])
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:2b")
 
-IST = ZoneInfo("Asia/Kolkata")
+TIMEZONE = ZoneInfo(os.environ.get("TIMEZONE", "Asia/Kolkata"))
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -61,10 +61,10 @@ def auth_only(func):
 
 async def parse_datetime(user_input: str) -> datetime | None:
     """Parse natural language datetime using Ollama. Returns UTC datetime."""
-    now_ist = datetime.now(IST)
+    now_local = datetime.now(TIMEZONE)
     prompt = (
         f"Convert this to an ISO 8601 datetime string (YYYY-MM-DDTHH:MM:SS). "
-        f"Current date/time is {now_ist.strftime('%Y-%m-%dT%H:%M:%S')} IST. "
+        f"Current date/time is {now_local.strftime('%Y-%m-%dT%H:%M:%S %Z')}. "
         f"Input: \"{user_input}\". "
         f"Respond with JSON only, no explanation. "
         f"Format: {{\"datetime\": \"YYYY-MM-DDTHH:MM:SS\"}}"
@@ -78,16 +78,16 @@ async def parse_datetime(user_input: str) -> datetime | None:
             data = resp.json()
             result = json.loads(data["response"])
             dt_str = result["datetime"]
-            # Parse as IST, convert to UTC
-            dt_ist = datetime.fromisoformat(dt_str).replace(tzinfo=IST)
-            return dt_ist.astimezone(timezone.utc)
+            # Parse as local timezone, convert to UTC
+            dt_local = datetime.fromisoformat(dt_str).replace(tzinfo=TIMEZONE)
+            return dt_local.astimezone(timezone.utc)
     except Exception as e:
         logger.warning(f"Ollama parse failed: {e}, trying direct ISO parse")
         # Fallback: try direct ISO parse
         try:
             dt = datetime.fromisoformat(user_input)
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=IST).astimezone(timezone.utc)
+                dt = dt.replace(tzinfo=TIMEZONE).astimezone(timezone.utc)
             return dt
         except Exception:
             return None
@@ -263,10 +263,10 @@ async def handle_schedule_time(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     for i, tweet in enumerate(tweets):
         db.add_tweet(thread_id, i, tweet["text"], tweet["image_paths"])
 
-    # Display time back in IST
-    scheduled_ist = scheduled_utc.astimezone(IST).strftime("%Y-%m-%d %H:%M IST")
+    # Display time in local timezone
+    scheduled_local = scheduled_utc.astimezone(TIMEZONE).strftime("%Y-%m-%d %H:%M %Z")
     await update.message.reply_text(
-        f"Thread #{thread_id} scheduled for {scheduled_ist}.\n"
+        f"Thread #{thread_id} scheduled for {scheduled_local}.\n"
         f"/cancel_thread {thread_id} to remove it."
     )
     return ConversationHandler.END
@@ -291,13 +291,13 @@ async def cmd_threads(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     lines = []
     for t in threads:
         tweets = db.get_tweets(t["id"])
-        # Convert UTC to IST for display
+        # Convert UTC to local timezone for display
         try:
             dt_utc = datetime.fromisoformat(t["scheduled_at"]).replace(tzinfo=timezone.utc)
-            dt_ist = dt_utc.astimezone(IST).strftime("%Y-%m-%d %H:%M IST")
+            dt_local = dt_utc.astimezone(TIMEZONE).strftime("%Y-%m-%d %H:%M %Z")
         except Exception:
-            dt_ist = t["scheduled_at"]
-        lines.append(f"#{t['id']} — {len(tweets)} tweet(s) — {dt_ist}")
+            dt_local = t["scheduled_at"]
+        lines.append(f"#{t['id']} — {len(tweets)} tweet(s) — {dt_local}")
 
     await update.message.reply_text("Scheduled threads:\n\n" + "\n".join(lines))
 

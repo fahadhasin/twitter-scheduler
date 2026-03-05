@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 set -e
 
-PI="admin_pi5@fahad-pi5.local"
-REMOTE_DIR="/home/admin_pi5/twitter-scheduler"
+# ── Configure these for your setup ──────────────────────────────────────────
+PI_USER="your-pi-username"
+PI_HOST="your-pi-hostname.local"
+REMOTE_DIR="/home/${PI_USER}/twitter-scheduler"
 SERVICE="twitter-scheduler"
+# ────────────────────────────────────────────────────────────────────────────
+
+PI="${PI_USER}@${PI_HOST}"
 
 echo "==> Syncing files to Pi..."
 rsync -av \
@@ -15,9 +20,9 @@ rsync -av \
   . "${PI}:${REMOTE_DIR}/"
 
 echo "==> Setting up venv and installing dependencies..."
-ssh "$PI" bash <<'ENDSSH'
+ssh "$PI" bash << ENDSSH
 set -e
-cd /home/admin_pi5/twitter-scheduler
+cd ${REMOTE_DIR}
 mkdir -p data/images
 
 if [ ! -d venv ]; then
@@ -30,9 +35,9 @@ pip install --quiet -r requirements.txt
 ENDSSH
 
 echo "==> Installing systemd service..."
-ssh "$PI" bash <<'ENDSSH'
+ssh "$PI" bash << ENDSSH
 set -e
-sudo cp /home/admin_pi5/twitter-scheduler/twitter-scheduler.service /etc/systemd/system/
+sudo cp ${REMOTE_DIR}/twitter-scheduler.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable twitter-scheduler.service
 ENDSSH

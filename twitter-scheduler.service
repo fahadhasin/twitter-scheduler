@@ -1,13 +1,13 @@
 [Unit]
 Description=Twitter Thread Scheduler Bot
-After=network.target ollama.service
+After=network.target
 
 [Service]
 Type=simple
-User=admin_pi5
-WorkingDirectory=/home/admin_pi5/twitter-scheduler
-EnvironmentFile=/home/admin_pi5/twitter-scheduler/.env
-ExecStart=/home/admin_pi5/twitter-scheduler/venv/bin/python bot.py
+User=<your-pi-username>
+WorkingDirectory=/home/<your-pi-username>/twitter-scheduler
+EnvironmentFile=/home/<your-pi-username>/twitter-scheduler/.env
+ExecStart=/home/<your-pi-username>/twitter-scheduler/venv/bin/python bot.py
 Restart=on-failure
 RestartSec=10
 
