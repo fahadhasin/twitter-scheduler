@@ -1,0 +1,4 @@
+python-telegram-bot[ext]==21.10
+playwright
+python-dotenv==1.0.1
+httpx==0.27.2
