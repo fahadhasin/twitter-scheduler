@@ -77,28 +77,31 @@ async def post_thread(tweets_data: list[dict]) -> list[str]:
                         logger.warning(f"Image not found: {img_path}")
                         continue
 
-                    # Count current attachments before upload
+                    logger.info(f"Uploading image for tweet {i}: {img_path}")
                     before = await page.locator('[data-testid="attachments"]').count()
 
-                    file_input = page.locator('input[data-testid="fileInput"]').last
-                    await file_input.set_input_files(img_path)
-                    logger.info(f"Uploading {img_path}, attachments before: {before}")
+                    # Click the "Add photos or video" button for the current slot,
+                    # then intercept the file chooser dialog
+                    async with page.expect_file_chooser(timeout=5000) as fc_info:
+                        await page.get_by_label("Add photos or video").last.click(force=True)
+                    fc = await fc_info.value
+                    await fc.set_files(img_path)
 
-                    # Wait for a NEW attachments container to appear (count increases)
+                    # Wait for attachment count to increase, confirming upload was processed
                     try:
                         await page.wait_for_function(
                             f'document.querySelectorAll(\'[data-testid="attachments"]\').length > {before}',
                             timeout=20000,
                         )
-                        await page.wait_for_timeout(1500)
-                        logger.info(f"Image upload confirmed (attachments now: {await page.locator('[data-testid=\"attachments\"]').count()})")
+                        await page.wait_for_timeout(1000)
+                        logger.info(f"Image upload confirmed for tweet {i}")
                     except Exception:
-                        logger.warning("Attachment count didn't increase — waiting 8s as fallback")
-                        await page.wait_for_timeout(8000)
+                        logger.warning(f"Upload confirmation timed out for tweet {i} — proceeding anyway")
+                        await page.wait_for_timeout(5000)
 
             post_btn = page.locator('[data-testid="tweetButtonInline"], [data-testid="tweetButton"]').first
             await post_btn.wait_for(state="visible", timeout=10000)
-            await page.wait_for_timeout(2000)
+            await page.wait_for_timeout(1000)
             await post_btn.click()
             await page.wait_for_timeout(5000)
 

@@ -4,10 +4,10 @@ After=network.target
 
 [Service]
 Type=simple
-User=<your-pi-username>
-WorkingDirectory=/home/<your-pi-username>/twitter-scheduler
-EnvironmentFile=/home/<your-pi-username>/twitter-scheduler/.env
-ExecStart=/home/<your-pi-username>/twitter-scheduler/venv/bin/python bot.py
+User=<your-username>
+WorkingDirectory=/home/<your-username>/twitter-scheduler
+EnvironmentFile=/home/<your-username>/twitter-scheduler/.env
+ExecStart=/home/<your-username>/twitter-scheduler/venv/bin/python bot.py
 Restart=on-failure
 RestartSec=10
 
